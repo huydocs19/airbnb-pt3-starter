@@ -9,6 +9,8 @@ import {
   ProtectedRoute,
   Register,
   Navbar,
+  Recover,
+  PasswordReset
 } from "components"
 
 export default function AppRoutes() {
@@ -23,6 +25,8 @@ export default function AppRoutes() {
           <Route path="/listings/*" element={<ListingsPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/recover" element={<Recover />} />
+          <Route path="/password-reset" element={<PasswordReset />} />
           <Route path="/profile/*" element={<ProfilePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

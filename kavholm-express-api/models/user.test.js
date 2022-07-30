@@ -1,11 +1,20 @@
 const { NotFoundError, BadRequestError, UnauthorizedError } = require("../utils/errors")
 const User = require("./user")
+const tokens = require("../utils/tokens")
 const { commonBeforeAll, commonBeforeEach, commonAfterEach, commonAfterAll } = require("../tests/common")
 
 beforeAll(commonBeforeAll)
 beforeEach(commonBeforeEach)
 afterEach(commonAfterEach)
 afterAll(commonAfterAll)
+
+const newUser = {
+  username: "fake_user",
+  email: "fake@user.io",
+  firstName: "Fake",
+  lastName: "User",
+  isAdmin: false,
+}
 
 describe("User", () => {
   /************************************** User.login */
@@ -118,6 +127,8 @@ describe("User", () => {
         last_name: "James",
         email: "lebron@james.io",
         is_admin: false,
+        pw_reset_token: null,
+        pw_reset_token_exp: null,
         password: expect.any(String),
         created_at: expect.any(Date),
       })
@@ -141,6 +152,8 @@ describe("User", () => {
         last_name: "James",
         email: "lebron@james.io",
         is_admin: false,
+        pw_reset_token: null,
+        pw_reset_token_exp: null,
         password: expect.any(String),
         created_at: expect.any(Date),
       })
@@ -151,6 +164,53 @@ describe("User", () => {
 
       const user = await User.fetchUserByUsername("unknown")
       expect(user).toBeFalsy()
+    })
+  })
+
+  describe("Test password reset", () => {
+    test("User can store password reset token in the db", async () => {
+      const user = await User.register({ ...newUser, password: "pw" })
+      const resetToken = tokens.generatePasswordResetToken()
+
+      await User.savePasswordResetToken(user.email, resetToken)
+
+      const userFromDb = await User.fetchUserByEmail(user.email)
+
+      expect(userFromDb.pw_reset_token).toEqual(resetToken.token)
+      expect(userFromDb.pw_reset_token_exp).toEqual(expect.any(Date))
+    })
+
+    test("User can reset their password when supplying the correct token", async () => {
+      const user = await User.register({ ...newUser, password: "pw" })
+      const oldUser = await User.fetchUserByEmail(user.email)
+
+      const resetToken = tokens.generatePasswordResetToken()
+
+      await User.savePasswordResetToken(user.email, resetToken)
+      await User.resetPassword(resetToken.token, "new_pw")
+
+      const userFromDb = await User.fetchUserByEmail(user.email)
+
+      expect(userFromDb.pw_reset_token).toEqual(null)
+      expect(userFromDb.pw_reset_token_exp).toEqual(null)
+      expect(userFromDb.password === oldUser.password).toBeFalsy()
+
+      expect(await User.login({ email: newUser.email, password: "new_pw" })).toBeTruthy()
+    })
+
+    test("Error is thrown when bad token is supplied", async () => {
+      expect.assertions(1)
+
+      const user = await User.register({ ...newUser, password: "pw" })
+      const resetToken = tokens.generatePasswordResetToken()
+
+      await User.savePasswordResetToken(user.email, resetToken)
+
+      try {
+        await User.resetPassword("bad token", "new_pw")
+      } catch (err) {
+        expect(err instanceof BadRequestError).toBeTruthy()
+      }
     })
   })
 })

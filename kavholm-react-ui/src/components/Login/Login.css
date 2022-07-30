@@ -54,7 +54,7 @@
   color: var(--bright-red);
   margin: 5px 0;
 }
-.Login .to-register {
+.Login .to-register, .Login .to-recover {
   display: flex;
   align-items: center;
   justify-content: flex-end;

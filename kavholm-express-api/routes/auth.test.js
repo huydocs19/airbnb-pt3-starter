@@ -1,5 +1,7 @@
 const request = require("supertest")
 const app = require("../app")
+const User = require("../models/user")
+const tokens = require("../utils/tokens")
 
 const { commonBeforeAll, commonBeforeEach, commonAfterEach, commonAfterAll } = require("../tests/common")
 
@@ -94,4 +96,42 @@ describe("Auth Routes", () => {
       expect(res.statusCode).toEqual(400)
     })
   })
+
+  describe("POST /auth/recover", () => {
+    test("User can request password recovery and receive a success message", async () => {
+      const res = await request(app).post(`/auth/recover`).send({ email: `lebron@james.io` })      
+      expect(res.statusCode).toEqual(200)
+      expect(res.body).toEqual({
+        message: "If your account exists in our system, you should receive an email shortly.",
+      })
+    })
+  })
+
+  describe("POST /auth/password-reset", () => {
+    test("User with valid token can reset password", async () => {
+      const email = "lebron@james.io"
+      const user = await User.fetchUserByEmail(email)
+      const resetToken = tokens.generatePasswordResetToken()
+      await User.savePasswordResetToken(email, resetToken)
+      const res = await request(app)
+        .post(`/auth/password-reset?token=${resetToken.token}`)
+        .send({ newPassword: `brandNewPassword` })
+      expect(res.statusCode).toEqual(200)
+
+      expect(res.body).toEqual({ message: "Password successfully reset." })
+
+      const newUser = await User.fetchUserByEmail(email)
+      expect(user.password === newUser.password).toBeFalsy()
+    })
+
+    test("User with invalid token gets 400 error", async () => {
+      const badToken = "incorrectToken"
+      const res = await request(app)
+        .post(`/auth/password-reset?token=${badToken}`)
+        .send({ newPassword: `brandNewPassword` })
+      expect(res.statusCode).toEqual(400)
+      expect(res.body).toEqual({ error: { message: `That token is either expired or invalid.`, status: 400 } })
+    })
+  })
+
 })

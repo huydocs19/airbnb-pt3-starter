@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { Routes as AppRoutes } from "components"
-import { AuthContextProvider, useAuthContext } from "contexts/auth"
+import { AuthContextProvider, selectUserIsAuthenticated, useAuthContext } from "contexts/auth"
 import { ListingsContextProvider, useListingsContext } from "contexts/listings"
 import { BookingsContextProvider, useBookingsContext } from "contexts/bookings"
 import apiClient from "services/apiClient"
@@ -20,9 +20,11 @@ const AppContainer = () => {
 }
 
 const App = () => {
-  const { handlers: authHandlers, setInitialized, isAuthenticated } = useAuthContext()
+  const { handlers: authHandlers, setInitialized, user, initialized} = useAuthContext()
   const { handlers: listingsHandlers } = useListingsContext()
   const { handlers: bookingsHandlers } = useBookingsContext()
+
+  const isAuthenticated = selectUserIsAuthenticated(user, initialized)
 
   useEffect(() => {
     const initApp = async () => {
@@ -41,7 +43,7 @@ const App = () => {
     }
 
     initApp()
-  }, [authHandlers, listingsHandlers, bookingsHandlers, setInitialized, isAuthenticated])
+  }, [setInitialized, isAuthenticated])
 
   return (
     <div className="App">

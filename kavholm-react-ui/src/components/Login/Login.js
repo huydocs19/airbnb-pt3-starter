@@ -38,6 +38,9 @@ export default function Login({ message }) {
                 />
               </InputField>
 
+              <p className="to-recover">
+                Forgot your password? Recover your account <Link to="/recover">here.</Link>
+              </p>
               <p className="to-register">
                 Need an account? Sign up <Link to="/register">here.</Link>
               </p>
